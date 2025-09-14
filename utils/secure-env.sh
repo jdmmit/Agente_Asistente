@@ -1,99 +1,49 @@
 #!/bin/bash
 
-# secure-env.sh - Asistente interactivo para crear el archivo .env
+# secure-env.sh - Crea una plantilla .env.example con instrucciones.
 
 # --- Colores para la salida ---
 C_GREEN='\033[0;32m'
-C_BLUE='\033[0;34m'
 C_YELLOW='\033[1;33m'
+C_RED='\033[0;31m'
 C_NC='\033[0m' # No Color
 
-# --- Funciones de Entrada ---
+echo -e "${C_YELLOW}Creando archivo de plantilla de entorno...${C_NC}"
 
-# Función para requerir una entrada del usuario. No puede estar vacía.
-# Lee directamente de la terminal (/dev/tty) para evitar interferencias
-# de herramientas externas como Firebase CLI.
-require_input() {
-    local prompt_text="$1"
-    local input
-    while true; do
-        read -p "$prompt_text: " input </dev/tty
-        if [[ -n "$input" ]]; then
-            echo "$input"
-            break
-        fi
-    done
-}
+# --- Generación del Archivo Plantilla---
+TEMPLATE_CONTENT="# .env - Variables de entorno seguras para Memorae
+#
+# INSTRUCCIONES:
+# 1. RENOMBRA este archivo de '.env.example' a '.env'
+# 2. RELLENA los valores de abajo. No dejes vacíos los valores requeridos.
+# 3. GUARDA el archivo.
+#
+# NOTA: Este archivo .env es ignorado por Git, por lo que tus secretos están a salvo.
 
-# Función para pedir una entrada opcional con un valor por defecto.
-# También lee directamente de /dev/tty.
-prompt() {
-    local prompt_text="$1"
-    local input
-    read -p "$prompt_text: " input </dev/tty
-    echo "$input"
-}
+# -- Información de Usuario --
+USER_NAME=\"User\"
 
-# --- Inicio del Script ---
-echo -e "${C_BLUE}-------------------------------------${C_NC}"
-echo -e "${C_BLUE} Memorae Environment Setup${C_NC}"
-echo -e "${C_BLUE}-------------------------------------${C_NC}"
-echo "This script will help you create a secure .env file for your assistant."
-echo "You can press Enter to accept the default values in brackets [like this]."
-echo ""
+# -- Configuración de Email (REQUERIDO para enviar notificaciones) --
+EMAIL_USER=\"tu_email@gmail.com\"
+EMAIL_PASS=\"tu_contraseña_de_aplicacion_de_16_digitos_de_gmail\"
 
-# --- Recopilación de Datos ---
+# -- Configuración de WhatsApp (OPCIONAL) --
+# Tu número completo, incluyendo código de país (ej: +11234567890)
+WHATSAPP_NUMBER=\"\"
 
-# Get user name (optional, with default)
-user_name=$(prompt "Enter your name [User]")
+# -- Configuración de LLM Ollama --
+# El modelo a usar para generar respuestas
+OLLAMA_MODEL=\"llama3\"
 
-# Get email credentials (required)
-email_user=$(require_input "Enter your Gmail address (for sending notifications)")
-email_pass=$(require_input "Enter your Gmail App Password (search Google for 'Gmail App Password')")
-
-# Get WhatsApp number (optional)
-whatsapp_number=$(prompt "Enter your WhatsApp number (e.g., +11234567890)")
-
-# Get Ollama model (optional, with default)
-ollama_model=$(prompt "Enter the Ollama model to use [llama3]")
-
-# --- Generación del Archivo ---
-
-# Establecer valores por defecto si están vacíos
-: "${user_name:=User}"
-: "${ollama_model:=llama3}"
-
-# Crear contenido del archivo .env
-ENV_CONTENT="# .env - Secure environment variables for Memorae
-
-# -- User Information --
-USER_NAME=\"${user_name}\"
-
-# -- Email Configuration (for sending notifications) --
-EMAIL_USER=\"${email_user}\"
-EMAIL_PASS=\"${email_pass}\"
-
-# -- WhatsApp Configuration --
-# Your full number, including country code (e.g., +11234567890)
-WHATSAPP_NUMBER=\"${whatsapp_number}\"
-
-# -- Ollama LLM Configuration --
-# The model to use for generating responses (e.g., llama3, phi3)
-OLLAMA_MODEL=\"${ollama_model}\"
-
-# -- Ollama Connection --
-# For local setup, Ollama runs on the host machine.
-# For Docker, this will be automatically overridden.
+# -- Conexión con Ollama --
+# Para configuración local, Ollama se ejecuta en la máquina anfitriona.
+# Esto es sobreescrito por Docker Compose para la comunicación entre contenedores.
 OLLAMA_HOST=http://127.0.0.1:11434
 "
 
-# Escribir el archivo .env
-if echo -e "$ENV_CONTENT" > .env; then
-    echo ""
-    echo -e "✅ ${C_GREEN}Success! Your .env file has been created.${C_NC}"
-    echo "The application will now start..."
+# Escribir el archivo .env.example
+if echo -e "$TEMPLATE_CONTENT" > .env.example; then
+    echo -e "✅ ${C_GREEN}¡Éxito! Se ha creado '.env.example'.${C_NC}"
 else
-    echo ""
-    echo -e "❌ ${C_RED}Error! Could not create the .env file.${C_NC}"
-    echo "Please check your permissions and try again."
+    echo -e "❌ ${C_RED}¡Error! No se pudo crear el archivo .env.example.${C_NC}"
 fi
