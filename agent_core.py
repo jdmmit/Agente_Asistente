@@ -2,6 +2,7 @@
 import logging
 import json
 import uuid
+import re
 from datetime import datetime, timedelta
 
 from database_manager import DatabaseManager
@@ -31,14 +32,31 @@ class JDMMitAgente:
             logger.critical(f"Error fatal durante la inicialización del agente: {e}", exc_info=True)
             raise
 
-    def process_response(self, response):
-        """Procesa la respuesta del LLM para determinar la acción a tomar"""
+    def process_response(self, response: str):
+        """
+        Procesa la respuesta del LLM para determinar la acción a tomar.
+        Busca y extrae un bloque JSON de la respuesta, incluso si está rodeado de texto.
+        """
         try:
-            if response.strip().startswith('{') and response.strip().endswith('}'):
-                return json.loads(response.strip())
-        except json.JSONDecodeError:
-            logger.warning(f"No se pudo decodificar el JSON de la respuesta: {response}")
+            # Primero, busca un bloque de código JSON (```json ... ```)
+            match = re.search(r"```json\s*({.*?})\s*```", response, re.DOTALL)
+            if match:
+                json_str = match.group(1)
+                return json.loads(json_str)
+
+            # Si no, busca el primer '{' y el último '}' como un fallback.
+            start_index = response.find('{')
+            end_index = response.rfind('}')
+            if start_index != -1 and end_index != -1 and start_index < end_index:
+                json_str = response[start_index:end_index+1]
+                return json.loads(json_str)
+            
+            logger.info(f"La respuesta no contenía un JSON válido. Tratando como texto: {response}")
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"No se pudo decodificar el JSON extraído de la respuesta: {response}. Error: {e}")
         
+        # Si todo lo demás falla, devuelve una acción de respuesta simple.
         return {'tipo': ACTION_RESPONSE, 'contenido': response}
 
     def _try_parse_date(self, date_str):
