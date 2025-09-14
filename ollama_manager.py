@@ -1,7 +1,7 @@
 import ollama
 
 class OllamaManager:
-    def __init__(self, host='http://ollama:11434')):
+    def __init__(self, host='http://ollama:11434'):
         self.client = ollama.Client(host=host)
 
     def get_ollama_response(self, model, prompt):
