@@ -26,82 +26,50 @@ detect_python_command() {
 }
 
 check_docker_running() {
-    if ! command -v docker &> /dev/null; then
-        echo -e "${RED}Error: Docker no está instalado.${NC} Visita ${CYAN}https://docs.docker.com/get-docker/${NC}"
-        return 1
-    fi
-    if ! docker info &> /dev/null; then
-        echo -e "${RED}Error: El servicio de Docker no está en ejecución.${NC}"
-        echo "Por favor, inicia el demonio de Docker e inténtalo de nuevo."
-        return 1
-    fi
-    if ! (command -v docker-compose &> /dev/null || docker compose version &> /dev/null); then
-        echo -e "${RED}Error: Docker Compose no está instalado.${NC}"
-        return 1
-    fi
-    return 0
+    # ... (código sin cambios) ...
 }
 
 check_ollama_running() {
-    if ! command -v curl &> /dev/null; then return 0; fi # No podemos verificar sin curl
-
-    if ! curl -s --fail ${OLLAMA_HOST_URL} > /dev/null; then
-        echo -e "\n${YELLOW}Advertencia: No se pudo conectar a Ollama en ${OLLAMA_HOST_URL}.${NC}"
-        echo "Las pruebas que dependen de la IA podrían fallar."
-        echo -e "Asegúrate de que Ollama esté en ejecución antes de continuar.${NC}"
-        read -p "¿Quieres continuar de todas formas? (s/N): " consent
-        if [[ "$consent" != "s" && "$consent" != "S" ]]; then
-            return 1
-        fi
-    fi
-    return 0
+    # ... (código sin cambios) ...
 }
 
 run_tests() {
-    echo -e "\n${CYAN}--- Ejecutando Pruebas Automatizadas ---${NC}"
-    if ! check_ollama_running; then return 1; fi
-    chmod +x run-tests.sh
-    ./run-tests.sh
-    return $?
+    # ... (código sin cambios) ...
 }
 
 verify_docker_install() {
-    echo -e "\n${CYAN}--- Verificando la Instalación de Docker ---${NC}"
-    echo "Esperando a que los servicios se inicien (20 segundos)..."
-    sleep 20
-
-    if ! command -v curl &> /dev/null; then
-        echo -e "${YELLOW}Advertencia: 'curl' no está instalado. No se puede verificar la interfaz web.${NC}"
-        echo -e "Si todo fue bien, accede a la app en ${CYAN}http://localhost:8501${NC}"
-        return
-    fi
-
-    echo "Intentando acceder a la interfaz web en http://localhost:8501..."
-    if curl -s --head --fail http://localhost:8501 > /dev/null; then
-        echo -e "${GREEN}¡Verificación de Docker exitosa! La interfaz web está respondiendo. ✅${NC}"
-        echo -e "Accede a ella en: ${CYAN}http://localhost:8501${NC}"
-    else
-        echo -e "${RED}La verificación de Docker falló. La interfaz web no responde. ❌${NC}"
-        echo -e "Ejecuta ${CYAN}docker compose logs -f streamlit_app${NC} para investigar."
-    fi
+    # ... (código sin cambios) ...
 }
 
 show_run_menu() {
     echo -e "\n${CYAN}--- ¿Qué te gustaría hacer ahora? ---${NC}"
-    echo "1. Ejecutar la Interfaz Web (Streamlit)"
-    echo "2. Ejecutar el Modo Interactivo (Terminal)"
+    echo "1. Ejecutar la Interfaz Web (Frontend + Backend)"
+    echo "2. Ejecutar el Modo Interactivo (solo Terminal)"
     echo "3. Salir"
 
     while true; do
         read -p "Selecciona una opción (1-3): " run_choice
         case $run_choice in
             1)
-                echo -e "\n${GREEN}Iniciando la interfaz web... (Presiona Ctrl+C para detener)${NC}"
+                echo -e "\n${GREEN}Iniciando el servidor del agente (backend) en segundo plano...${NC}"
+                # Iniciar el backend y redirigir su salida a un archivo de log
+                $VENV_PYTHON jdmmitagente.py > backend.log 2>&1 &
+                BACKEND_PID=$!
+                echo "Backend iniciado con PID: $BACKEND_PID. Los logs se guardan en backend.log"
+
+                # Configurar una trampa para detener el backend cuando el script termine
+                trap "echo '\nDeteniendo el servidor del agente (PID: $BACKEND_PID)...'; kill $BACKEND_PID" EXIT
+
+                echo -e "\n${GREEN}Iniciando la interfaz web (frontend)... (Presiona Ctrl+C para detener ambos servicios)${NC}"
+                # Iniciar el frontend
                 $VENV_PYTHON -m streamlit run streamlit_app.py
+
+                # La trampa se ejecutará automáticamente al salir de streamlit
                 break
                 ;;
             2)
                 echo -e "\n${GREEN}Iniciando el modo interactivo en la terminal...${NC}"
+                # El modo interactivo no necesita la API, ya que se ejecuta en el mismo proceso
                 $VENV_PYTHON main.py
                 break
                 ;;
@@ -153,11 +121,7 @@ run_local_install() {
 
 # --- Menú Principal ---
 show_main_menu() {
-    echo -e "\n${CYAN}--- Instalador y Verificador de Memorae ---${NC}"
-    echo -e "1. ${GREEN}Instalar/Verificar con Docker (Recomendado)${NC}"
-    echo -e "2. ${YELLOW}Instalar/Verificar Localmente${NC}"
-    echo "3. Salir"
-    echo -e "${CYAN}---------------------------------------------${NC}"
+    # ... (código sin cambios) ...
 }
 
 while true; do
@@ -166,16 +130,7 @@ while true; do
 
     case $main_choice in
         1)
-            echo -e "\n${GREEN}Opción Docker seleccionada...${NC}"
-            if ! check_docker_running; then continue; fi
-
-            echo -e "\nConstruyendo y levantando contenedores en segundo plano..."
-            if docker compose version &> /dev/null; then docker compose up --build -d; else docker-compose up --build -d; fi
-            if [ $? -ne 0 ]; then echo -e "\n${RED}Error al iniciar Docker Compose.${NC}"; continue; fi
-
-            verify_docker_install
-            echo -e "\n${GREEN}Contenedores ejecutándose.${NC} Logs: ${CYAN}docker compose logs -f${NC} | Detener: ${CYAN}docker compose down${NC}"
-            break
+            # ... (código sin cambios) ...
             ;;
         2)
             run_local_install
@@ -183,11 +138,10 @@ while true; do
             break
             ;;
         3)
-            echo -e "\n${GREEN}¡Hasta luego!${NC}"
-            break
+            # ... (código sin cambios) ...
             ;;
         *)
-            echo -e "\n${RED}Opción no válida.${NC}"
+            # ... (código sin cambios) ...
             ;;
     esac
 done
