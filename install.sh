@@ -30,7 +30,7 @@ clear
 print_header
 
 echo "Este script te guiará a través de la instalación de Memorae."
-echo "Se comprobarán los prerrequisitos antes de continuar."
+echo "Se comprobarán los prerrequisitos y se iniciará la aplicación con Docker."
 echo
 
 # --- 1. Verificación de Prerrequisitos ---
@@ -59,20 +59,16 @@ echo
 echo -e "${C_GREEN}¡Genial! Todos los prerrequisitos están cumplidos.${C_NC}"
 echo
 
-# --- 2. Instrucciones Finales ---
-echo -e "${C_YELLOW}--- Paso 2: Iniciar la configuración y la aplicación ---${C_NC}"
-echo "El último paso es ejecutar el script que configurará tu entorno y lanzará Docker."
-echo
-echo "Por favor, ejecuta el siguiente comando en tu terminal:"
+# --- 2. Iniciar el Entorno de Docker ---
+echo -e "${C_YELLOW}--- Paso 2: Configurando e iniciando el entorno ---${C_NC}"
+echo "A continuación, se configurará tu entorno (si es la primera vez) y se iniciarán los servicios de Docker."
 echo
 
-# Dar permisos de ejecución al script de Docker y mostrar el comando
+# Dar permisos de ejecución al script de Docker y ejecutarlo
 if [ -f "run-docker.sh" ]; then
     chmod +x run-docker.sh
-    echo -e "  ${C_GREEN}./run-docker.sh${C_NC}"
+    ./run-docker.sh
 else
-    echo -e "${C_RED}Error: El script 'run-docker.sh' no se encontró. Algo salió mal.${C_NC}"
+    echo -e "${C_RED}Error: El script 'run-docker.sh' no se encontró. Abortando.${C_NC}"
     exit 1
 fi
-
-echo
