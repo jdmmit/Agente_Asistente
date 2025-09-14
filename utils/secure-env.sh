@@ -1,39 +1,50 @@
 #!/bin/bash
 
-# Interactive script to securely create a .env file
+# secure-env.sh - Asistente interactivo para crear el archivo .env
 
-# --- Helper Functions ---
+# --- Colores para la salida ---
+C_GREEN='\033[0;32m'
+C_BLUE='\033[0;34m'
+C_YELLOW='\033[1;33m'
+C_NC='\033[0m' # No Color
 
-# Function to prompt for user input with a message
-prompt() {
-    echo -n "$1: "
-    read -r val
-    echo "$val"
-}
+# --- Funciones de Entrada ---
 
-# Function to validate that input is not empty
+# Función para requerir una entrada del usuario. No puede estar vacía.
+# Lee directamente de la terminal (/dev/tty) para evitar interferencias
+# de herramientas externas como Firebase CLI.
 require_input() {
-    local prompt_msg="$1"
-    local value=""
-    while [[ -z "$value" ]]; do
-        value=$(prompt "$prompt_msg")
-        if [[ -z "$value" ]]; then
-            echo "This field is required. Please try again."
+    local prompt_text="$1"
+    local input
+    while true; do
+        read -p "$prompt_text: " input </dev/tty
+        if [[ -n "$input" ]]; then
+            echo "$input"
+            break
         fi
     done
-    echo "$value"
 }
 
-# --- Main Script ---
+# Función para pedir una entrada opcional con un valor por defecto.
+# También lee directamente de /dev/tty.
+prompt() {
+    local prompt_text="$1"
+    local input
+    read -p "$prompt_text: " input </dev/tty
+    echo "$input"
+}
 
-# Introduction
-echo "-------------------------------------"
-echo " Memorae Environment Setup"
-echo "-------------------------------------"
+# --- Inicio del Script ---
+echo -e "${C_BLUE}-------------------------------------${C_NC}"
+echo -e "${C_BLUE} Memorae Environment Setup${C_NC}"
+echo -e "${C_BLUE}-------------------------------------${C_NC}"
 echo "This script will help you create a secure .env file for your assistant."
 echo "You can press Enter to accept the default values in brackets [like this]."
+echo ""
 
-# Get user's name (optional, with default)
+# --- Recopilación de Datos ---
+
+# Get user name (optional, with default)
 user_name=$(prompt "Enter your name [User]")
 
 # Get email credentials (required)
@@ -46,13 +57,13 @@ whatsapp_number=$(prompt "Enter your WhatsApp number (e.g., +11234567890)")
 # Get Ollama model (optional, with default)
 ollama_model=$(prompt "Enter the Ollama model to use [llama3]")
 
-# --- File Generation ---
+# --- Generación del Archivo ---
 
-# Set defaults if empty
+# Establecer valores por defecto si están vacíos
 : "${user_name:=User}"
 : "${ollama_model:=llama3}"
 
-# Create .env file content
+# Crear contenido del archivo .env
 ENV_CONTENT="# .env - Secure environment variables for Memorae
 
 # -- User Information --
@@ -76,19 +87,13 @@ OLLAMA_MODEL=\"${ollama_model}\"
 OLLAMA_HOST=http://127.0.0.1:11434
 "
 
-# Write the .env file
+# Escribir el archivo .env
 if echo -e "$ENV_CONTENT" > .env; then
     echo ""
-    echo "✅ Success! Your .env file has been created."
-    echo "You can now run the assistant."
+    echo -e "✅ ${C_GREEN}Success! Your .env file has been created.${C_NC}"
+    echo "The application will now start..."
 else
     echo ""
-    echo "❌ Error! Could not create the .env file."
+    echo -e "❌ ${C_RED}Error! Could not create the .env file.${C_NC}"
     echo "Please check your permissions and try again."
 fi
-
-# --- Final Instructions ---
-echo ""
-echo "Next Steps:"
-echo "1. If you want to use Google Calendar, make sure to add your \"credentials.json\" file to this directory."
-echo "2. Run the assistant with: python jdmmitagente.py or streamlit run jdmmitagente.py"
