@@ -40,7 +40,7 @@ def mock_ollama():
         # Configuramos la instancia mock para que tenga un método 'chat'
         instance = mock.return_value
         # Por defecto, el mock de chat devolverá una respuesta de texto simple
-        instance.chat.return_value = '{'tipo': 'respuesta', 'contenido': 'Hola de vuelta'}'
+        instance.chat.return_value = "{'tipo': 'respuesta', 'contenido': 'Hola de vuelta'}"
         yield instance
 
 @pytest.fixture
@@ -65,8 +65,8 @@ def test_database_connection(test_db):
     # Verificar que las tablas principales existen
     tables = ['conversations', 'memories', 'tasks']
     for table in tables:
-        cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{'table'}';")
-        assert cursor.fetchone() is not None, f"La tabla '{'table'}' no fue creada."
+        cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}';")
+        assert cursor.fetchone() is not None, f"La tabla '{table}' no fue creada."
     
     conn.close()
 
