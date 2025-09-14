@@ -13,6 +13,7 @@ NC='\033[0m' # No Color
 VENV_DIR=".venv"
 OS="$(uname)"
 PYTHON_CMD=""
+VENV_PYTHON="" # Se definirá en run_local_install
 OLLAMA_HOST_URL="http://localhost:11434"
 
 # --- Funciones de Ayuda ---
@@ -85,6 +86,35 @@ verify_docker_install() {
     fi
 }
 
+show_run_menu() {
+    echo -e "\n${CYAN}--- ¿Qué te gustaría hacer ahora? ---${NC}"
+    echo "1. Ejecutar la Interfaz Web (Streamlit)"
+    echo "2. Ejecutar el Modo Interactivo (Terminal)"
+    echo "3. Salir"
+
+    while true; do
+        read -p "Selecciona una opción (1-3): " run_choice
+        case $run_choice in
+            1)
+                echo -e "\n${GREEN}Iniciando la interfaz web... (Presiona Ctrl+C para detener)${NC}"
+                $VENV_PYTHON -m streamlit run streamlit_app.py
+                break
+                ;;
+            2)
+                echo -e "\n${GREEN}Iniciando el modo interactivo en la terminal...${NC}"
+                $VENV_PYTHON main.py
+                break
+                ;;
+            3)
+                break
+                ;;
+            *)
+                echo -e "\n${RED}Opción no válida.${NC}"
+                ;;
+        esac
+    done
+}
+
 run_local_install() {
     echo -e "\n${YELLOW}Iniciando instalación local...${NC}"
     if ! detect_python_command; then
@@ -93,6 +123,7 @@ run_local_install() {
     echo -e "${GREEN}Python detectado: $($PYTHON_CMD --version)${NC}"
 
     if [ ! -d "$VENV_DIR" ]; then $PYTHON_CMD -m venv $VENV_DIR; fi
+    
     VENV_PYTHON="$VENV_DIR/bin/python"
     if [[ "$OS" == "MINGW"* || "$OS" == "CYGWIN"* || "$OS" == "MSYS"* ]]; then
         VENV_PYTHON="$VENV_DIR/Scripts/python"
@@ -110,8 +141,10 @@ run_local_install() {
     echo -e "${GREEN}Instalación local completada.${NC}"
     
     run_tests
-    if [ $? -eq 0 ]; then
+    local test_result=$? # Guardar resultado de las pruebas
+    if [ $test_result -eq 0 ]; then
         echo -e "${GREEN}¡Instalación local verificada y funciona! ✅${NC}"
+        show_run_menu # Mostrar menú para ejecutar la app
     else
         echo -e "${RED}Las pruebas fallaron. Revisa los errores anteriores para más detalles.${NC}"
     fi
