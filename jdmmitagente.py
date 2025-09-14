@@ -1,19 +1,17 @@
 
 #!/usr/bin/env python3
 """
-JDMMitAgente - Asistente Inteligente
+JDMMitAgente - API del Asistente Inteligente
 Versión 3.0.0 - Refactorizado y Modularizado
 
-Este script es el punto de entrada para iniciar el asistente.
+Este script expone la funcionalidad del agente a través de una API REST.
 """
 
 import logging
 import sys
-import argparse
-import subprocess
-
-from config import ASSISTANT_NAME, ASSISTANT_VERSION, LOG_FILE
+from flask import Flask, request, jsonify
 from agent_core import JDMMitAgente
+from config import LOG_FILE
 
 # --- Configuración del Logging --- #
 log_level = logging.INFO
@@ -22,73 +20,68 @@ handlers = [
     logging.FileHandler(LOG_FILE),
     logging.StreamHandler(sys.stdout)
 ]
-logging.basicConfig(
-    level=log_level,
-    format=log_format,
-    handlers=handlers
-)
+logging.basicConfig(level=log_level, format=log_format, handlers=handlers)
 logger = logging.getLogger(__name__)
 
+# --- Inicialización de la Aplicación Flask y el Agente --- #
+app = Flask(__name__)
+agent = None
 
-# --- Función Principal --- #
-def main():
-    """Punto de entrada principal del programa."""
-    
-    parser = argparse.ArgumentParser(
-        description=f"{ASSISTANT_NAME} v{ASSISTANT_VERSION} - Tu Asistente Inteligente",
-        epilog="Ejecuta sin argumentos para iniciar en modo interactivo."
-    )
-    
-    parser.add_argument(
-        '-c', '--command',
-        type=str,
-        help='Ejecuta un único comando y sale.'
-    )
-    parser.add_argument(
-        '--web',
-        action='store_true',
-        help='Inicia la interfaz gráfica web con Streamlit.'
-    )
-    parser.add_argument(
-        '--verbose',
-        action='store_true',
-        help='Activa el logging detallado (DEBUG).'
-    )
-
-    args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        logger.debug("Logging en modo DEBUG activado.")
-
-    if args.web:
-        logger.info("Iniciando la interfaz web con Streamlit...")
+def initialize_agent():
+    """Inicializa la instancia del agente."""
+    global agent
+    if agent is None:
         try:
-            subprocess.run(["streamlit", "run", "streamlit_app.py"], check=True)
-        except FileNotFoundError:
-            logger.error("El comando 'streamlit' no fue encontrado. Asegúrate de que Streamlit está instalado y en tu PATH.")
-            print("Error: 'streamlit' no encontrado. Por favor, instala Streamlit con 'pip install streamlit'.")
+            agent = JDMMitAgente()
+            logger.info("Instancia de JDMMitAgente creada con éxito.")
         except Exception as e:
-            logger.critical(f"No se pudo iniciar la aplicación Streamlit: {e}", exc_info=True)
-        return
+            logger.critical(f"Error fatal al inicializar JDMMitAgente: {e}", exc_info=True)
+            # Esto podría causar que la app no inicie, lo cual es deseable si el agente no puede funcionar.
+            raise
+    return agent
+
+# --- Definición de Rutas de la API --- #
+@app.route('/api/command', methods=['POST'])
+def handle_command():
+    """
+    Maneja la ejecución de un único comando recibido vía POST.
+    Espera un JSON con la clave 'prompt'.
+    """
+    logger.debug("Recibida solicitud en /api/command")
+    
+    if not request.is_json:
+        logger.warning("Solicitud recibida no es de tipo JSON.")
+        return jsonify({"error": "La solicitud debe ser de tipo application/json"}), 415
+
+    data = request.get_json()
+    prompt = data.get('prompt')
+
+    if not prompt:
+        logger.warning("No se encontró 'prompt' en el cuerpo de la solicitud.")
+        return jsonify({"error": "El cuerpo de la solicitud debe contener la clave 'prompt'"}), 400
 
     try:
-        agent = JDMMitAgente()
+        agente_local = initialize_agent()
+        logger.info(f"Ejecutando comando a través de la API: '{prompt}'")
+        # Aquí asumimos que run_single_command devuelve un string con la respuesta.
+        # Si devuelve otro formato, habría que ajustarlo.
+        response = agente_local.run_single_command(prompt)
+        logger.info(f"Respuesta generada: {response}")
+        return jsonify({"response": response})
 
-        if args.command:
-            logger.info(f"Ejecutando comando único: '{args.command}'")
-            agent.run_single_command(args.command)
-        else:
-            logger.info("Iniciando en modo interactivo...")
-            agent.run_interactive_mode()
-
-    except KeyboardInterrupt:
-        print("\n\nPrograma interrumpido por el usuario. ¡Adiós!")
     except Exception as e:
-        logger.critical(f"Error fatal al ejecutar el agente: {e}", exc_info=True)
-        print(f"💥 Se ha producido un error fatal. Revisa el archivo de log '{LOG_FILE}' para más detalles.")
-        sys.exit(1)
+        logger.error(f"Error al procesar el comando: {e}", exc_info=True)
+        return jsonify({"error": "Se ha producido un error interno al procesar el comando."}), 500
 
-
+# --- Punto de Entrada Principal --- #
 if __name__ == "__main__":
-    main()
+    # Asegurarse de que el agente se inicializa al arrancar
+    try:
+        initialize_agent()
+        logger.info(f"Servidor API para JDMMitAgente iniciando...")
+        # Escuchar en todas las interfaces en el puerto 5000 (puerto por defecto de Flask)
+        # Es crucial usar 0.0.0.0 para que sea accesible desde otros contenedores Docker.
+        app.run(host='0.0.0.0', port=5000)
+    except Exception as e:
+        logger.critical(f"No se pudo iniciar el servidor API: {e}", exc_info=True)
+        sys.exit(1)

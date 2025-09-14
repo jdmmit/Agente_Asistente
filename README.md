@@ -10,18 +10,11 @@ Memorae es un asistente inteligente diseñado para funcionar localmente en tu m�
 
 1.  [✨ Características Principales](#-características-principales)
 2.  [🚀 Cómo Funciona](#-cómo-funciona)
-3.  [🔧 Instalación](#-instalación)
-    *   [Opción 1: Instalación Automática con Docker (Recomendado)](#opción-1-instalación-automática-con-docker-recomendado)
-    *   [Opción 2: Instalación Local (Para Desarrolladores)](#opción-2-instalación-local-para-desarrolladores)
+3.  [🔧 Instalación y Ejecución](#-instalación-y-ejecución)
+    *   [Método 1: Docker (Recomendado)](#método-1-docker-recomendado)
+    *   [Método 2: Local (Para Desarrollo)](#método-2-local-para-desarrollo)
 4.  [▶️ Cómo Usar Memorae](#️-cómo-usar-memorae)
-    *   [Interfaz Web (Streamlit)](#interfaz-web-streamlit)
-    *   [Modo Interactivo (Terminal)](#modo-interactivo-terminal)
 5.  [💬 Comandos del Asistente](#-comandos-del-asistente)
-    *   [Crear una Tarea](#crear-una-tarea)
-    *   [Listar Tareas](#listar-tareas)
-    *   [Completar una Tarea](#completar-una-tarea)
-    *   [Guardar en la Memoria](#guardar-en-la-memoria)
-    *   [Conversación General](#conversación-general)
 
 ---
 
@@ -31,8 +24,7 @@ Memorae es un asistente inteligente diseñado para funcionar localmente en tu m�
 *   **Gestión de Tareas**: Crea, lista y completa tareas usando lenguaje natural.
 *   **Memoria a Largo Plazo**: Pídele a Memorae que recuerde información importante por ti.
 *   **Múltiples Interfaces**: Úsalo a través de una interfaz web amigable o directamente desde tu terminal.
-*   **Notificaciones**: Recibe alertas sobre tus tareas (próximamente).
-*   **Fácil de Instalar**: Un único script se encarga de toda la configuración inicial.
+*   **Fácil de Instalar**: Métodos de instalación claros y sencillos con Docker o un script local.
 
 ---
 
@@ -42,74 +34,77 @@ Memorae utiliza una arquitectura modular para ser flexible y potente. El núcleo
 
 ---
 
-## 🔧 Instalación
+## 🔧 Instalación y Ejecución
 
 ### Prerrequisitos
 
-*   **Para la instalación con Docker**: Necesitas tener [Docker](https://docs.docker.com/get-docker/) y Docker Compose instalados.
-*   **Para la instalación local**: Necesitas Python 3.8+, pip y Git.
-*   **Ollama**: Debes tener Ollama instalado. Sigue las instrucciones en [ollama.com](https://ollama.com/download).
+*   **Generales**: Git para clonar el repositorio.
+*   **Para Docker**: [Docker](https://docs.docker.com/get-docker/) y Docker Compose instalados.
+*   **Para la instalación local**: Python 3.10+ y `python3-venv`.
+*   **Ollama**: Debes tener Ollama instalado y corriendo. Sigue las instrucciones en [ollama.com](https://ollama.com/download).
     *   Una vez instalado, descarga un modelo. Recomendamos `llama3`:
       ```bash
       ollama pull llama3
       ```
 
-### Opción 1: Instalación Automática con Docker (Recomendado)
+### Método 1: Docker (Recomendado)
 
-Este es el método más sencillo. Un único script se encarga de todo.
+Este es el método más sencillo y robusto. Docker se encarga de todo el entorno por ti.
 
-1.  **Clona el repositorio**:
+1.  **Clona el repositorio** e ingresa al directorio:
     ```bash
-    git clone <URL-del-repositorio>
-    cd <nombre-del-repositorio>
+    git clone https://github.com/tu-usuario/jdm-mit-agente.git
+    cd jdm-mit-agente
+    ```
+    *(Reemplaza la URL con la URL real del repositorio cuando esté disponible)*
+
+2.  **Construye y levanta los servicios** con Docker Compose:
+    ```bash
+    docker compose up --build
     ```
 
-2.  **Ejecuta el script de instalación**:
+¡Eso es todo! La aplicación (interfaz web y agente) se iniciará automáticamente. Puedes acceder a la interfaz web en `http://localhost:8501`.
+
+### Método 2: Local (Para Desarrollo)
+
+Ideal si quieres modificar el código, probar cambios rápidamente o no quieres usar Docker.
+
+1.  **Clona el repositorio** e ingresa al directorio (si aún no lo has hecho).
+
+2.  **Ejecuta el script de instalación local**:
     ```bash
-    ./install.sh
+    sh install-local.sh
     ```
-
-    El script te guiará para:
-    *   Instalar las dependencias de Python.
-    *   Configurar de forma segura tus datos sensibles (email, etc.) en un archivo `.env`.
-    *   Construir e iniciar los contenedores de Docker.
-
-¡Y eso es todo! La interfaz web estará disponible en `http://localhost:8501`.
-
-### Opción 2: Instalación Local (Para Desarrolladores)
-
-Ideal si quieres modificar el código.
-
-1.  **Clona el repositorio y entra en el directorio** (si aún no lo has hecho).
-
-2.  **Ejecuta el script de configuración segura**:
-    ```bash
-    chmod +x utils/secure-env.sh
-    ./utils/secure-env.sh
-    ```
-    Este script instalará las dependencias y te ayudará a crear tu archivo `.env`.
+    Este script creará un entorno virtual de Python, instalará todas las dependencias necesarias y te guiará para crear un archivo de configuración `.env` para tus datos sensibles.
 
 ---
 
 ## ▶️ Cómo Usar Memorae
 
+Una vez instalado y en ejecución, puedes interactuar con Memorae de dos maneras:
+
 ### Interfaz Web (Streamlit)
 
-Si usaste la instalación con Docker o `install.sh`, la interfaz web ya debería estar corriendo. Si la instalación fue local, ejecútala con:
-
-```bash
-streamlit run streamlit_app.py
-```
-
-Abre tu navegador y ve a `http://localhost:8501`.
+*   **Si usaste Docker**: La interfaz está disponible automáticamente en `http://localhost:8501`.
+*   **Si usaste el método local**: El script `install-local.sh` te habrá dado la opción de iniciar la interfaz web al finalizar. Si no, puedes iniciarla manualmente (asegúrate de que el entorno virtual esté activado):
+    ```bash
+    # Activa el entorno virtual si no lo está
+    source .venv/bin/activate
+    # Lanza la app de Streamlit
+    streamlit run streamlit_app.py
+    ```
 
 ### Modo Interactivo (Terminal)
 
-Para una experiencia clásica en la línea de comandos:
+Perfecto para una experiencia de línea de comandos.
 
-```bash
-python jdmmitagente.py
-```
+*   **Si usaste el método local**, puedes iniciar el modo interactivo así (asegúrate de que el entorno virtual esté activado):
+    ```bash
+    # Activa el entorno virtual si no lo está
+    source .venv/bin/activate
+    # Ejecuta el agente en modo terminal
+    python jdmmitagente.py
+    ```
 
 ---
 
@@ -119,42 +114,27 @@ Habla con Memorae usando lenguaje natural. Aquí tienes algunos ejemplos de lo q
 
 ### Crear una Tarea
 
-Pídele que agende algo por ti. Puedes ser tan específico como quieras.
-
 > "Recuérdame que tengo que llamar al banco mañana a las 10 de la mañana"
-
 > "Añade una tarea para comprar el pan, con descripción 'comprar dos barras'"
-
-El asistente entiende fechas relativas ("mañana", "el viernes que viene") y horas.
 
 ### Listar Tareas
 
-Revisa lo que tienes pendiente.
-
 > "¿Qué tareas tengo pendientes?"
-
 > "Muéstrame mi lista de tareas"
 
 ### Completar una Tarea
 
-Cuando termines algo, solo díselo. Necesitarás el ID que te da el asistente al listar las tareas.
+Necesitarás el ID que te da el asistente al listar las tareas.
 
 > "Ya terminé la tarea con ID 3"
-
 > "Completar la tarea 5"
 
 ### Guardar en la Memoria
 
-Pídele que recuerde datos, hechos o cualquier cosa que necesites.
-
 > "Recuerda que mi número de vuelo para el viaje es el AV-456"
-
 > "Guarda en la categoría 'trabajo' que el jefe de proyecto se llama Carlos"
 
 ### Conversación General
 
-También puedes hablar con él, hacerle preguntas o simplemente saludar.
-
 > "Hola, ¿cómo estás?"
-
 > "¿Cuál es la capital de Mongolia?"

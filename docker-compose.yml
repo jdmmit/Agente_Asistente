@@ -21,6 +21,8 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    networks:
+      - jdmmitagente-net
 
   ollama:
     image: ollama/ollama
@@ -36,15 +38,12 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    networks:
+      - jdmmitagente-net
 
-  jdmmitagente:
+  agent:
     build: .
-    container_name: jdmmitagente_app
-    ports:
-      - "8501:8501"
-    volumes:
-      - .:/app
-      - .env:/app/.env:ro
+    container_name: jdmmitagente_agent
     depends_on:
       mysql:
         condition: service_healthy
@@ -54,8 +53,34 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - DB_HOST=mysql
       - DB_TYPE=mysql
+    volumes:
+      - .:/app
+      - .env:/app/.env:ro
     command: python jdmmitagente.py
     restart: unless-stopped
+    networks:
+      - jdmmitagente-net
+
+  web:
+    build: .
+    container_name: jdmmitagente_web
+    ports:
+      - "8501:8501"
+    depends_on:
+      agent:
+        condition: service_started
+    environment:
+      - RUNNING_IN_DOCKER=true
+    volumes:
+      - .:/app
+    command: streamlit run streamlit_app.py
+    restart: unless-stopped
+    networks:
+      - jdmmitagente-net
+
+networks:
+  jdmmitagente-net:
+    driver: bridge
 
 volumes:
   mysql_data:
