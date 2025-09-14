@@ -41,12 +41,18 @@ if submitted:
                 with st.spinner("Enviando mensaje de prueba a WhatsApp..."):
                     client = Client(account_sid, auth_token)
 
+                    # --- CORRECCIÓN ---
+                    # Asegurarse de que el número de origen (From) tenga el prefijo 'whatsapp:'
+                    from_number = twilio_phone_number
+                    if not from_number.startswith('whatsapp:'):
+                        from_number = f'whatsapp:{from_number}'
+
                     # Construcción del mensaje
                     message_body = f"¡Hola {name}! 👋 Tu conexión está funcionando correctamente. Tus datos han sido registrados: Correo: {email}."
                     
                     # Envío del mensaje
                     message = client.messages.create(
-                        from_=twilio_phone_number,
+                        from_=from_number, # Usar el número de origen corregido
                         body=message_body,
                         to=f'whatsapp:{whatsapp_number}'
                     )
