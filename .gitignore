@@ -1,17 +1,37 @@
-# Entorno virtual
-venv/
-__pycache__/
-
-# Base de datos local
-memoria.db
-
-# Configuraciones sensibles
+# Datos sensibles
 .env
-
-# Token de Google
-token.pickle
+.env.*
+*.log
 
 # Archivos temporales
+*.tmp
+*.temp
+__pycache__/
 *.pyc
 *.pyo
-*.log
+
+# Base de datos local
+*.db
+*.sqlite
+
+# Entorno virtual
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+*.seed
+*.lock
+
+# Backups
+*.backup*

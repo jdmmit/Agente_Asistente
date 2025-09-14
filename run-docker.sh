@@ -1,42 +1,32 @@
 #!/bin/bash
 
-echo "🐳 Iniciando JDMMitAgente con Docker"
-echo "====================================="
+# run-docker.sh - Script para ejecutar Docker Compose con manejo de permisos (Corregido para sudo siempre si necesario)
 
-# Verificar que docker-compose.yml existe
-if [ ! -f "docker-compose.yml" ]; then
-    echo "❌ docker-compose.yml no encontrado"
-    exit 1
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo -e "${YELLOW}Verificando Docker...${NC}"
+
+# Iniciar Docker daemon si no corre
+if ! systemctl is-active --quiet docker; then
+    echo -e "${YELLOW}Iniciando Docker daemon...${NC}"
+    sudo systemctl start docker
+    sudo systemctl enable docker
 fi
 
-# Verificar que .env existe
-if [ ! -f ".env" ]; then
-    echo "❌ Archivo .env no encontrado"
-    exit 1
+# Test si docker funciona sin sudo
+if docker info > /dev/null 2>&1; then
+    echo -e "${GREEN}Docker accesible sin sudo.${NC}"
+    DOCKER_CMD="docker compose"
+else
+    echo -e "${YELLOW}Usando sudo para Docker (permisos requeridos).${NC}"
+    DOCKER_CMD="sudo docker compose"
 fi
 
-echo "🔍 Verificando servicios..."
-
-# Detener servicios existentes si están corriendo
-docker-compose down --remove-orphans
-
-echo "🚀 Iniciando servicios..."
-
-# Iniciar servicios en segundo plano
-docker-compose up -d
-
-# Esperar a que los servicios estén listos
-echo "⏳ Esperando a que los servicios estén listos..."
-sleep 10
-
-# Verificar estado de los servicios
-echo "📊 Estado de los servicios:"
-docker-compose ps
-
-# Mostrar logs del agente
-echo ""
-echo "📋 Logs del agente (Ctrl+C para salir de los logs):"
-echo "================================================="
-
-# Seguir logs del contenedor principal
-docker-compose logs -f jdmmitagente
+# Build and run
+echo -e "${YELLOW}Ejecutando ${DOCKER_CMD} up --build...${NC}"
+${DOCKER_CMD} up --build

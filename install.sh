@@ -82,7 +82,7 @@ setup_configuration() {
     if [ -f ".env" ]; then
         echo ""
         echo "Se encontró una configuración existente:"
-        echo "$(head -n 3 .env | tail -n 1)"
+        head -n 3 .env | tail -n 1
         echo ""
         
         echo "¿Qué quieres hacer?"
@@ -90,7 +90,8 @@ setup_configuration() {
         echo "2. 🆕 Crear nueva configuración"
         echo "3. ⚙️  Reconfigurar datos personales"
         echo ""
-        read -p "$(echo -e ${YELLOW}Elige una opción [1-3]: ${NC})" config_choice
+        echo -ne "${YELLOW}Elige una opción [1-3]: ${NC}"
+        read config_choice
         
         case $config_choice in
             1)
@@ -114,13 +115,15 @@ setup_configuration() {
         echo ""
         
         if [ -f "./setup-config.sh" ]; then
-            read -p "$(echo -e ${YELLOW}¿Iniciar configurador ahora? (s/n): ${NC})" start_config
+            echo -ne "${YELLOW}¿Iniciar configurador ahora? (s/n): ${NC}"
+            read start_config
             if [[ $start_config =~ ^[SsYy]$ ]]; then
                 ./setup-config.sh
             else
                 show_warning "Puedes configurar más tarde ejecutando: ./setup-config.sh"
                 echo ""
-                read -p "$(echo -e ${YELLOW}¿Continuar con configuración por defecto? (s/n): ${NC})" use_default
+                echo -ne "${YELLOW}¿Continuar con configuración por defecto? (s/n): ${NC}"
+                read use_default
                 if [[ ! $use_default =~ ^[SsYy]$ ]]; then
                     echo "Instalación cancelada. Ejecuta ./setup-config.sh cuando estés listo."
                     exit 1
@@ -196,7 +199,7 @@ setup_environment() {
     chmod +x run.sh 2>/dev/null || true
     chmod +x run-docker.sh 2>/dev/null || true
     chmod +x setup-config.sh 2>/dev/null || true
-    chmod +x test-project.sh 2>/dev/null || true
+    chmod +x utils/test-project.sh 2>/dev/null || true
     
     show_success "Entorno configurado"
 }
@@ -223,7 +226,8 @@ select_installation_type() {
     echo "   - Para desarrolladores/usuarios avanzados"
     echo ""
 
-    read -p "$(echo -e ${YELLOW}Elige una opción [1-3]: ${NC})" choice
+    echo -ne "${YELLOW}Elige una opción [1-3]: ${NC}"
+    read choice
 
     case $choice in
         1) docker_installation ;;
@@ -293,7 +297,7 @@ local_installation() {
 setup_python_environment() {
     show_step "Configurando entorno Python..."
     
-    # Crear entorno virtual
+    # Crear entorno virtual si no existe
     if [ ! -d "venv" ]; then
         python3 -m venv venv
         show_success "Entorno virtual creado"
@@ -324,8 +328,8 @@ verify_installation() {
     show_step "Verificando instalación..."
     
     # Ejecutar verificador del proyecto
-    if [ -f "./test-project.sh" ]; then
-        if ./test-project.sh > /dev/null 2>&1; then
+    if [ -f "./utils/test-project.sh" ]; then
+        if ./utils/test-project.sh > /dev/null 2>&1; then
             show_success "Verificación completa exitosa"
         else
             show_warning "Algunas verificaciones fallaron. El proyecto debería funcionar igual."
@@ -340,7 +344,7 @@ show_installation_summary() {
     echo "============================"
     echo ""
     
-    case $INSTALLATION_TYPE in
+    case ${INSTALLATION_TYPE:-docker} in
         "docker")
             echo -e "${GREEN}📦 Tipo de instalación:${NC} Solo Docker"
             echo ""
@@ -388,7 +392,7 @@ show_installation_summary() {
     echo ""
     echo -e "${WHITE}📚 Documentación:${NC}"
     echo "   README.md                   # Guía completa"
-    echo "   ./test-project.sh          # Verificar proyecto"
+    echo "   ./utils/test-project.sh     # Verificar proyecto"
     echo ""
     
     echo -e "${BLUE}🤖 ¡Tu asistente JDMMitAgente está listo para usarse!${NC}"
