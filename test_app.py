@@ -88,7 +88,7 @@ def test_create_memory_end_to_end(agente, mock_ollama, test_db):
     """4. Prueba de extremo a extremo: guardar una memoria y verificar en la BD."""
     # 1. Configurar el mock de Ollama para que devuelva una acción de memoria
     prompt_memoria = "Recuerda que mi color favorito es el azul"
-    json_response = '{'tipo': 'memoria', 'categoria': 'preferencia_usuario', 'info': 'color favorito es azul'}'
+    json_response = "{'tipo': 'memoria', 'categoria': 'preferencia_usuario', 'info': 'color favorito es azul'}"
     mock_ollama.chat.return_value = f"```json\n{json_response}\n```"
 
     # 2. Ejecutar el comando en el agente

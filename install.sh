@@ -13,6 +13,7 @@ NC='\033[0m' # No Color
 VENV_DIR=".venv"
 OS="$(uname)"
 PYTHON_CMD=""
+OLLAMA_HOST_URL="http://localhost:11434"
 
 # --- Funciones de Ayuda ---
 
@@ -23,9 +24,14 @@ detect_python_command() {
     return 0
 }
 
-check_docker() {
+check_docker_running() {
     if ! command -v docker &> /dev/null; then
         echo -e "${RED}Error: Docker no está instalado.${NC} Visita ${CYAN}https://docs.docker.com/get-docker/${NC}"
+        return 1
+    fi
+    if ! docker info &> /dev/null; then
+        echo -e "${RED}Error: El servicio de Docker no está en ejecución.${NC}"
+        echo "Por favor, inicia el demonio de Docker e inténtalo de nuevo."
         return 1
     fi
     if ! (command -v docker-compose &> /dev/null || docker compose version &> /dev/null); then
@@ -35,8 +41,24 @@ check_docker() {
     return 0
 }
 
+check_ollama_running() {
+    if ! command -v curl &> /dev/null; then return 0; fi # No podemos verificar sin curl
+
+    if ! curl -s --fail ${OLLAMA_HOST_URL} > /dev/null; then
+        echo -e "\n${YELLOW}Advertencia: No se pudo conectar a Ollama en ${OLLAMA_HOST_URL}.${NC}"
+        echo "Las pruebas que dependen de la IA podrían fallar."
+        echo -e "Asegúrate de que Ollama esté en ejecución antes de continuar.${NC}"
+        read -p "¿Quieres continuar de todas formas? (s/N): " consent
+        if [[ "$consent" != "s" && "$consent" != "S" ]]; then
+            return 1
+        fi
+    fi
+    return 0
+}
+
 run_tests() {
     echo -e "\n${CYAN}--- Ejecutando Pruebas Automatizadas ---${NC}"
+    if ! check_ollama_running; then return 1; fi
     chmod +x run-tests.sh
     ./run-tests.sh
     return $?
@@ -59,10 +81,6 @@ verify_docker_install() {
         echo -e "Accede a ella en: ${CYAN}http://localhost:8501${NC}"
     else
         echo -e "${RED}La verificación de Docker falló. La interfaz web no responde. ❌${NC}"
-        echo -e "Posibles causas:
-- Un problema durante la construcción de la imagen.
-- El puerto 8501 ya está en uso.
-- El contenedor de la app falló al iniciar."
         echo -e "Ejecuta ${CYAN}docker compose logs -f streamlit_app${NC} para investigar."
     fi
 }
@@ -70,31 +88,23 @@ verify_docker_install() {
 run_local_install() {
     echo -e "\n${YELLOW}Iniciando instalación local...${NC}"
     if ! detect_python_command; then
-        echo -e "${RED}Error: No se encontró 'python3' o 'python'.${NC}"
-        echo "Por favor, instala Python 3.10+ y asegúrate de que esté en tu PATH."
-        return 1
+        echo -e "${RED}Error: No se encontró 'python3' o 'python'.${NC}"; return 1;
     fi
     echo -e "${GREEN}Python detectado: $($PYTHON_CMD --version)${NC}"
 
-    if [ ! -d "$VENV_DIR" ]; then
-        echo -e "\nCreando entorno virtual..."
-        $PYTHON_CMD -m venv $VENV_DIR
-    fi
-
+    if [ ! -d "$VENV_DIR" ]; then $PYTHON_CMD -m venv $VENV_DIR; fi
     VENV_PYTHON="$VENV_DIR/bin/python"
     if [[ "$OS" == "MINGW"* || "$OS" == "CYGWIN"* || "$OS" == "MSYS"* ]]; then
         VENV_PYTHON="$VENV_DIR/Scripts/python"
     fi
 
     echo -e "\nInstalando dependencias..."
-    $VENV_PYTHON -m pip install --upgrade pip
-    $VENV_PYTHON -m pip install -r requirements.txt
+    $VENV_PYTHON -m pip install --upgrade pip && $VENV_PYTHON -m pip install -r requirements.txt
     if [ $? -ne 0 ]; then echo -e "${RED}Error al instalar dependencias.${NC}"; return 1; fi
 
     if [ ! -f ".env" ]; then
-        echo -e "\nCreando archivo .env..."
         echo "DATABASE_NAME=memorae.db" > .env
-        echo "OLLAMA_HOST=http://localhost:11434" >> .env
+        echo "OLLAMA_HOST=${OLLAMA_HOST_URL}" >> .env
     fi
 
     echo -e "${GREEN}Instalación local completada.${NC}"
@@ -103,17 +113,7 @@ run_local_install() {
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}¡Instalación local verificada y funciona! ✅${NC}"
     else
-        echo -e "${YELLOW}Las pruebas fallaron. Reinstalando dependencias...${NC}"
-        $VENV_PYTHON -m pip install --force-reinstall -r requirements.txt
-        
-        echo -e "\nVolviendo a ejecutar las pruebas..."
-        run_tests
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}¡La reinstalación solucionó el problema! Verificado. ✅${NC}"
-        else
-            echo -e "${RED}La auto-reparación falló. Las pruebas siguen sin pasar. ❌${NC}"
-            echo -e "Causas: error en el código de las pruebas, o el servicio Ollama no está corriendo."
-        fi
+        echo -e "${RED}Las pruebas fallaron. Revisa los errores anteriores para más detalles.${NC}"
     fi
     return 0
 }
@@ -134,25 +134,14 @@ while true; do
     case $main_choice in
         1)
             echo -e "\n${GREEN}Opción Docker seleccionada...${NC}"
-            if ! check_docker; then continue; fi
+            if ! check_docker_running; then continue; fi
 
             echo -e "\nConstruyendo y levantando contenedores en segundo plano..."
-            if docker compose version &> /dev/null; then
-                docker compose up --build -d
-            else
-                docker-compose up --build -d
-            fi
-
-            if [ $? -ne 0 ]; then
-                echo -e "\n${RED}Error al iniciar los contenedores con Docker Compose.${NC}"
-                continue
-            fi
+            if docker compose version &> /dev/null; then docker compose up --build -d; else docker-compose up --build -d; fi
+            if [ $? -ne 0 ]; then echo -e "\n${RED}Error al iniciar Docker Compose.${NC}"; continue; fi
 
             verify_docker_install
-            
-            echo -e "\n${GREEN}Los contenedores se están ejecutando en segundo plano.${NC}"
-            echo -e "Para ver los logs, usa: ${CYAN}docker compose logs -f${NC}"
-            echo -e "Para detener todo, usa: ${CYAN}docker compose down${NC}"
+            echo -e "\n${GREEN}Contenedores ejecutándose.${NC} Logs: ${CYAN}docker compose logs -f${NC} | Detener: ${CYAN}docker compose down${NC}"
             break
             ;;
         2)
