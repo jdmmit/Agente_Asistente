@@ -3,9 +3,6 @@ ollama>=0.1.7
 mysql-connector-python>=8.0.33
 PyMySQL>=1.0.2
 
-# Communication
-smtplib-ssl>=1.0.0
-
 # Voice and Audio
 pyttsx3>=2.90
 SpeechRecognition>=3.10.0
@@ -18,7 +15,6 @@ pywhatkit>=5.4
 
 # Utilities
 python-dotenv>=1.0.0
-uuid
 
 # Optional GUI dependencies
 streamlit>=1.28.0

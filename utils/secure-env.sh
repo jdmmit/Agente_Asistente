@@ -1,103 +1,140 @@
 #!/bin/bash
 
-# Utilidad de Seguridad para JDMMitAgente
-set -e
+# Interactive script to securely create a .env file and install dependencies
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-WHITE='\033[1;37m'
-NC='\033[0m'
+# --- Helper Functions ---
 
-ENV_FILE=".env"
-ENCRYPTED_FILE=".env.encrypted"
-KEY_FILE=".env.key"
-
-show_help() {
-    echo -e "${WHITE}🔐 JDMMitAgente - Utilidad de Seguridad${NC}"
-    echo ""
-    echo "Uso: ./utils/secure-env.sh [comando]"
-    echo ""
-    echo "Comandos:"
-    echo "  encrypt    Encriptar archivo .env"
-    echo "  decrypt    Desencriptar archivo .env"
-    echo "  backup     Crear backup encriptado"
-    echo "  check      Verificar integridad"
-    echo "  --help     Mostrar esta ayuda"
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
 }
 
-encrypt_env() {
-    if [ ! -f "$ENV_FILE" ]; then
-        echo -e "${RED}❌ No se encontró $ENV_FILE${NC}"
-        exit 1
-    fi
-    
-    if ! command -v openssl &> /dev/null; then
-        echo -e "${RED}❌ OpenSSL no encontrado${NC}"
-        exit 1
-    fi
-    
-    echo -e "${GREEN}🔐 Encriptando configuración...${NC}"
-    
-    # Generar clave si no existe
-    if [ ! -f "$KEY_FILE" ]; then
-        openssl rand -base64 32 > "$KEY_FILE"
-        chmod 600 "$KEY_FILE"
-    fi
-    
-    # Encriptar
-    openssl enc -aes-256-cbc -salt -in "$ENV_FILE" -out "$ENCRYPTED_FILE" -pass file:"$KEY_FILE"
-    
-    echo -e "${GREEN}✅ Archivo encriptado: $ENCRYPTED_FILE${NC}"
+# Function to prompt for user input with a message
+prompt() {
+    echo -n "$1: "
+    read -r val
+    echo "$val"
 }
 
-decrypt_env() {
-    if [ ! -f "$ENCRYPTED_FILE" ] || [ ! -f "$KEY_FILE" ]; then
-        echo -e "${RED}❌ Archivos de encriptación no encontrados${NC}"
-        exit 1
-    fi
-    
-    openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$ENV_FILE" -pass file:"$KEY_FILE"
-    chmod 600 "$ENV_FILE"
-    echo -e "${GREEN}✅ Archivo desencriptado${NC}"
+# Function to validate that input is not empty
+require_input() {
+    local prompt_msg="$1"
+    local value=""
+    while [[ -z "$value" ]]; do
+        value=$(prompt "$prompt_msg")
+        if [[ -z "$value" ]]; then
+            echo "This field is required. Please try again."
+        fi
+    done
+    echo "$value"
 }
 
-backup_env() {
-    if [ ! -f "$ENV_FILE" ]; then
-        echo -e "${RED}❌ No se encontró $ENV_FILE${NC}"
-        exit 1
-    fi
-    
-    backup_file="env_backup_$(date +%Y%m%d_%H%M%S).tar.gz"
-    tar -czf "$backup_file" "$ENV_FILE"
-    echo -e "${GREEN}✅ Backup creado: $backup_file${NC}"
-}
+# --- Main Script ---
 
-check_integrity() {
-    echo -e "${WHITE}🔍 Verificando integridad...${NC}"
-    
-    if [ -f "$ENV_FILE" ]; then
-        echo -e "${GREEN}✅ $ENV_FILE encontrado${NC}"
-        if [ "$(stat -c %a "$ENV_FILE")" = "600" ]; then
-            echo -e "${GREEN}✅ Permisos correctos (600)${NC}"
+# Introduction
+echo "-------------------------------------"
+echo " Memorae Full Setup"
+echo "-------------------------------------"
+echo "This script will guide you through:"
+echo "1. Installing necessary Python packages."
+echo "2. Creating a secure .env file for your assistant."
+echo
+
+# --- Dependency Installation ---
+echo "--- Step 1: Installing Python Dependencies ---"
+if [ -f "requirements.txt" ]; then
+    if command_exists pip; then
+        echo "Found 'pip'. Installing packages from requirements.txt..."
+        if pip install -r requirements.txt; then
+            echo "✅ Python packages installed successfully."
         else
-            echo -e "${YELLOW}⚠️  Permisos incorrectos${NC}"
-            chmod 600 "$ENV_FILE"
-            echo -e "${GREEN}🔧 Permisos corregidos${NC}"
+            echo "❌ Error installing Python packages. Please check your pip and Python environment."
+            exit 1
+        fi
+    elif command_exists pip3; then
+        echo "Found 'pip3'. Installing packages from requirements.txt..."
+        if pip3 install -r requirements.txt; then
+            echo "✅ Python packages installed successfully."
+        else
+            echo "❌ Error installing Python packages. Please check your pip3 and Python environment."
+            exit 1
         fi
     else
-        echo -e "${RED}❌ $ENV_FILE no encontrado${NC}"
+        echo "⚠️ 'pip' or 'pip3' command not found. Cannot install Python packages."
+        echo "Please install Python and pip, then run this script again or install the packages manually:"
+        echo "pip install -r requirements.txt"
     fi
-    
-    if [ -f "$KEY_FILE" ]; then
-        echo -e "${GREEN}✅ Clave de encriptación encontrada${NC}"
-    fi
-}
+else
+    echo "⚠️ 'requirements.txt' not found. Skipping dependency installation."
+fi
+echo
 
-case "${1:-}" in
-    encrypt) encrypt_env ;;
-    decrypt) decrypt_env ;;
-    backup) backup_env ;;
-    check) check_integrity ;;
-    --help|-h|help|*) show_help ;;
-esac
+# --- .env File Generation ---
+echo "--- Step 2: Secure Environment Setup ---"
+echo "This will help you create a secure .env file for your assistant."
+echo "You can press Enter to accept the default values in brackets [like this]."
+echo
+
+# Get user's name (optional, with default)
+user_name=$(prompt "Enter your name [User]")
+
+# Get email credentials (required)
+email_user=$(require_input "Enter your Gmail address (for sending notifications)")
+email_pass=$(require_input "Enter your Gmail App Password (search Google for 'Gmail App Password')")
+
+# Get WhatsApp number (optional)
+whatsapp_number=$(prompt "Enter your WhatsApp number (e.g., +11234567890)")
+
+# Get Ollama model (optional, with default)
+ollama_model=$(prompt "Enter the Ollama model to use [llama3]")
+
+# --- File Generation ---
+
+# Set defaults if empty
+: "${user_name:=User}"
+: "${ollama_model:=llama3}"
+
+# Create .env file content
+ENV_CONTENT="# .env - Secure environment variables for Memorae
+
+# -- User Information --
+USER_NAME=\"${user_name}\"
+
+# -- Email Configuration (for sending notifications) --
+EMAIL_USER=\"${email_user}\"
+EMAIL_PASS=\"${email_pass}\"
+
+# -- WhatsApp Configuration --
+# Your full number, including country code (e.g., +11234567890)
+WHATSAPP_NUMBER=\"${whatsapp_number}\"
+
+# -- Ollama LLM Configuration --
+# The model to use for generating responses (e.g., llama3, phi3)
+OLLAMA_MODEL=\"${ollama_model}\"
+
+# -- Ollama Connection --
+# For local setup, Ollama runs on the host machine.
+# For Docker, this will be automatically overridden.
+OLLAMA_HOST=http://127.0.0.1:11434
+"
+
+# Write the .env file
+if echo -e "$ENV_CONTENT" > .env; then
+    echo
+    echo "✅ Success! Your .env file has been created."
+else
+    echo
+    echo "❌ Error! Could not create the .env file."
+    echo "Please check your permissions and try again."
+    exit 1
+fi
+
+# --- Final Instructions ---
+echo
+echo "--- Setup Complete! ---"
+echo "Next Steps:"
+echo "1. If using Google Calendar, add your 'credentials.json' file to the project root."
+echo "2. To run the assistant:"
+echo "   - In your terminal: python jdmmitagente.py"
+echo "   - Using the web interface: streamlit run streamlit_app.py"
+echo "   - Using Docker: ./run-docker.sh"

@@ -1,37 +1,29 @@
-# Datos sensibles
-.env
-.env.*
-*.log
-
-# Archivos temporales
-*.tmp
-*.temp
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
 
-# Base de datos local
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+
+# Project-specific
 *.db
 *.sqlite
+*.sqlite3
+.env
+credentials.json
+token.pickle
 
-# Entorno virtual
-venv/
-.venv/
-
-# IDE
-.vscode/
+# IDE / Editor files
 .idea/
+.vscode/
 *.swp
-*.swo
 
-# Sistema
+# OS-specific
 .DS_Store
 Thumbs.db
-
-# Docker
-*.pid
-*.seed
-*.lock
-
-# Backups
-*.backup*
