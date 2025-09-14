@@ -1,29 +1,8 @@
-# Core dependencies
-ollama>=0.1.7
-mysql-connector-python>=8.0.33
-PyMySQL>=1.0.2
-
-# Voice and Audio
-pyttsx3>=2.90
-SpeechRecognition>=3.10.0
-gtts>=2.3.1
-pygame>=2.4.0
-
-# GUI and Notifications
-plyer>=2.1.0
-pywhatkit>=5.4
-
-# Utilities
-python-dotenv>=1.0.0
-
-# Optional GUI dependencies
+# Interfaz Web
 streamlit>=1.28.0
 
-# Development and testing
-pytest>=7.0.0
-black>=23.0.0
-flake8>=6.0.0
+# API para WhatsApp
+twilio>=8.0.0
 
-# API and Web
-Flask>=2.3.0
-requests>=2.31.0
+# Modelo de Lenguaje
+ollama>=0.2.0

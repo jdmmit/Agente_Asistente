@@ -1,87 +1,42 @@
-version: "3.8"
+version: '3.9'
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: jdmmitagente_mysql
-    ports:
-      - "3306:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=root_password
-      - MYSQL_DATABASE=jdmmitagente_db
-      - MYSQL_USER=jdmmit_user
-      - MYSQL_PASSWORD=jdmmit_password
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./db_init:/docker-entrypoint-initdb.d
-    command: --default-authentication-plugin=mysql_native_password
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - jdmmitagente-net
-
-  ollama:
-    image: ollama/ollama
-    container_name: jdmmitagente_ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    command: serve
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - jdmmitagente-net
-
-  agent:
-    build: .
-    container_name: jdmmitagente_agent
-    depends_on:
-      mysql:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-      - DB_HOST=mysql
-      - DB_TYPE=mysql
-    volumes:
-      - .:/app
-      - .env:/app/.env:ro
-    command: python jdmmitagente.py
-    restart: unless-stopped
-    networks:
-      - jdmmitagente-net
-
+  # Interfaz Web de Configuración (Streamlit)
   web:
-    build: .
-    container_name: jdmmitagente_web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: config_app_web
+    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+    volumes:
+      - .:/app  # Sincronización de código para desarrollo en vivo
+      # El siguiente volumen monta los secretos de streamlit en el contenedor
+      - ./.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro
     ports:
       - "8501:8501"
-    depends_on:
-      agent:
-        condition: service_started
-    environment:
-      - RUNNING_IN_DOCKER=true
-    volumes:
-      - .:/app
-    command: streamlit run streamlit_app.py
-    restart: unless-stopped
     networks:
-      - jdmmitagente-net
+      - config_app_net
+    restart: unless-stopped
+    depends_on:
+      - ollama # Asegurarse de que Ollama se inicie primero
 
+  # Servicio para el modelo Llama 3
+  ollama:
+    image: ollama/ollama
+    container_name: ollama_service
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - config_app_net
+    restart: unless-stopped
+
+# Red para la comunicación
 networks:
-  jdmmitagente-net:
+  config_app_net:
     driver: bridge
 
+# Volumen para persistir los modelos de Ollama
 volumes:
-  mysql_data:
-  ollama_data:
+  ollama_data: {}

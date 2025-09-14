@@ -1,57 +1,61 @@
-# To learn more about how to use Nix to configure your environment
-# see: https://firebase.google.com/docs/studio/customize-workspace
-{ pkgs, ... }: {
-  # Which nixpkgs channel to use.
-  channel = "stable-24.05"; # or "unstable"
+# Documentación de Nix: https://firebase.google.com/docs/studio/customize-workspace
+{ pkgs, ... }:
+{
+  # Canal de paquetes de Nix a utilizar.
+  channel = "stable-24.05"; # También puedes usar "unstable"
 
-  # Enable the Docker daemon
+  # Activar el servicio de Docker, requisito para nuestro docker-compose.
   services.docker.enable = true;
 
-  # Use https://search.nixos.org/packages to find packages
+  # Paquetes de Nix disponibles en el entorno.
+  # Descomenta los que necesites o busca más en https://search.nixos.org/packages
   packages = [
-    # pkgs.go
-    # pkgs.python311
-    # pkgs.python311Packages.pip
-    # pkgs.nodejs_20
-    # pkgs.nodePackages.nodemon
+    pkgs.docker-compose # Esencial para orquestar nuestros servicios
   ];
 
-  # Sets environment variables in the workspace
+  # Variables de entorno globales.
   env = {};
+
+  # Configuración específica del IDE (IDX).
   idx = {
-    # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
+    # Extensiones de VS Code a instalar. Búscalas en https://open-vsx.org/
     extensions = [
-      # "vscodevim.vim"
+      "ms-azuretools.vscode-docker" # Extensión de Docker para una mejor integración
     ];
 
-    # Enable previews
+    # Configuración de las previsualizaciones.
     previews = {
       enable = true;
-      previews = {
-        # web = {
-        #   # Example: run "npm run dev" with PORT set to IDX's defined port for previews,
-        #   # and show it in IDX's web preview panel
-        #   command = ["npm" "run" "dev"];
-        #   manager = "web";
-        #   env = {
-        #     # Environment variables to set for your server
-        #     PORT = "$PORT";
-        #   };
-        # };
-      };
+      previews = [
+        {
+          # Nombre de la previsualización que se mostrará en el IDE.
+          id = "web-app";
+          # Título de la pestaña.
+          label = "Memorae Web";
+          # Puerto que debe exponer la previsualización.
+          port = 8501;
+          # Acción a realizar cuando se abre esta previsualización.
+          # En este caso, no se necesita un comando aquí porque los servicios
+          # ya se inician con el hook onStart.
+          command = []; 
+        }
+      ];
     };
 
-    # Workspace lifecycle hooks
+    # Hooks del ciclo de vida del espacio de trabajo.
     workspace = {
-      # Runs when a workspace is first created
+      # Se ejecuta cuando el espacio de trabajo se crea por primera vez.
       onCreate = {
-        # Example: install JS dependencies from NPM
-        # npm-install = "npm install";
+        # Podríamos pre-cargar modelos de Ollama aquí si fuera necesario.
+        # setup = "echo 'Configuración inicial completa'";
       };
-      # Runs when the workspace is (re)started
+
+      # Se ejecuta cada vez que el espacio de trabajo se inicia o reinicia.
       onStart = {
-        # Example: start a background task to watch and re-build backend code
-        # watch-backend = "npm run watch-backend";
+        # Levanta todos los servicios definidos en docker-compose.yml en segundo plano.
+        # La bandera -d (detached) es crucial para que no bloquee el terminal.
+        # --wait asegura que el comando espera a que los servicios estén saludables.
+        start-services = "docker compose up -d --wait";
       };
     };
   };
