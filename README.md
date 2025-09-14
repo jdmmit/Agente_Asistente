@@ -14,7 +14,8 @@ Memorae es un asistente inteligente diseñado para funcionar localmente en tu m�
     *   [Método 1: Docker (Recomendado)](#método-1-docker-recomendado)
     *   [Método 2: Local (Para Desarrollo)](#método-2-local-para-desarrollo)
 4.  [▶️ Cómo Usar Memorae](#️-cómo-usar-memorae)
-5.  [💬 Comandos del Asistente](#-comandos-del-asistente)
+5.  [🧪 Pruebas](#-pruebas)
+6.  [💬 Comandos del Asistente](#-comandos-del-asistente)
 
 ---
 
@@ -24,7 +25,7 @@ Memorae es un asistente inteligente diseñado para funcionar localmente en tu m�
 *   **Gestión de Tareas**: Crea, lista y completa tareas usando lenguaje natural.
 *   **Memoria a Largo Plazo**: Pídele a Memorae que recuerde información importante por ti.
 *   **Múltiples Interfaces**: Úsalo a través de una interfaz web amigable o directamente desde tu terminal.
-*   **Fácil de Instalar**: Métodos de instalación claros y sencillos con Docker o un script local.
+*   **Fácil de Instalar**: Un único script de instalación te guía para usar Docker o configurar un entorno local.
 
 ---
 
@@ -47,9 +48,7 @@ Memorae utiliza una arquitectura modular para ser flexible y potente. El núcleo
       ollama pull llama3
       ```
 
-### Método 1: Docker (Recomendado)
-
-Este es el método más sencillo y robusto. Docker se encarga de todo el entorno por ti.
+### Proceso de Instalación
 
 1.  **Clona el repositorio** e ingresa al directorio:
     ```bash
@@ -58,35 +57,25 @@ Este es el método más sencillo y robusto. Docker se encarga de todo el entorno
     ```
     *(Reemplaza la URL con la URL real del repositorio cuando esté disponible)*
 
-2.  **Construye y levanta los servicios** con Docker Compose:
+2.  **Ejecuta el script de instalación principal**:
     ```bash
-    docker compose up --build
+    sh install.sh
     ```
 
-¡Eso es todo! La aplicación (interfaz web y agente) se iniciará automáticamente. Puedes acceder a la interfaz web en `http://localhost:8501`.
-
-### Método 2: Local (Para Desarrollo)
-
-Ideal si quieres modificar el código, probar cambios rápidamente o no quieres usar Docker.
-
-1.  **Clona el repositorio** e ingresa al directorio (si aún no lo has hecho).
-
-2.  **Ejecuta el script de instalación local**:
-    ```bash
-    sh install-local.sh
-    ```
-    Este script creará un entorno virtual de Python, instalará todas las dependencias necesarias y te guiará para crear un archivo de configuración `.env` para tus datos sensibles.
+3.  **Sigue las instrucciones del menú**: El script te permitirá elegir entre:
+    *   **Instalación con Docker (Recomendada)**: Automáticamente construirá y lanzará los contenedores. La forma más fácil de empezar.
+    *   **Instalación Local**: Creará un entorno virtual, instalará dependencias y te guiará para configurar el archivo `.env`.
 
 ---
 
 ## ▶️ Cómo Usar Memorae
 
-Una vez instalado y en ejecución, puedes interactuar con Memorae de dos maneras:
+Una vez instalado, puedes interactuar con Memorae de dos maneras:
 
 ### Interfaz Web (Streamlit)
 
 *   **Si usaste Docker**: La interfaz está disponible automáticamente en `http://localhost:8501`.
-*   **Si usaste el método local**: El script `install-local.sh` te habrá dado la opción de iniciar la interfaz web al finalizar. Si no, puedes iniciarla manualmente (asegúrate de que el entorno virtual esté activado):
+*   **Si usaste el método local**: El script de instalación te habrá dado la opción de iniciar la interfaz web al finalizar. Si no, puedes iniciarla manualmente (asegúrate de que el entorno virtual esté activado):
     ```bash
     # Activa el entorno virtual si no lo está
     source .venv/bin/activate
@@ -96,8 +85,6 @@ Una vez instalado y en ejecución, puedes interactuar con Memorae de dos maneras
 
 ### Modo Interactivo (Terminal)
 
-Perfecto para una experiencia de línea de comandos.
-
 *   **Si usaste el método local**, puedes iniciar el modo interactivo así (asegúrate de que el entorno virtual esté activado):
     ```bash
     # Activa el entorno virtual si no lo está
@@ -105,6 +92,23 @@ Perfecto para una experiencia de línea de comandos.
     # Ejecuta el agente en modo terminal
     python jdmmitagente.py
     ```
+
+---
+
+## 🧪 Pruebas
+
+Para asegurar la calidad y estabilidad del código, el proyecto incluye un conjunto de pruebas automatizadas. Estas pruebas verifican la conexión a la base de datos, la lógica del agente y la interacción con los diferentes módulos.
+
+Para ejecutar las pruebas:
+
+1.  Asegúrate de haber completado la **instalación local** primero, ya que las pruebas dependen del entorno virtual creado.
+
+2.  Ejecuta el script de pruebas:
+    ```bash
+    sh run-tests.sh
+    ```
+
+El script mostrará los resultados de cada prueba. Un resultado exitoso es esencial para confirmar que los cambios recientes no han roto ninguna funcionalidad clave.
 
 ---
 
