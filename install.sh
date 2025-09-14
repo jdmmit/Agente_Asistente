@@ -30,7 +30,7 @@ clear
 print_header
 
 echo "Este script te guiará a través de la instalación de Memorae."
-echo "Se comprobarán los prerrequisitos y se iniciará la aplicación con Docker."
+echo "Se comprobarán los prerrequisitos antes de continuar."
 echo
 
 # --- 1. Verificación de Prerrequisitos ---
@@ -48,7 +48,7 @@ fi
 # Comprobar Ollama
 if command_exists ollama; then
     echo -e "✅ ${C_GREEN}Ollama está instalado.${C_NC}"
-    echo "Asegúrate de haber descargado un modelo (ej: ollama pull llama3)"
+    echo "      Asegúrate de haber descargado un modelo (ej: ollama pull llama3)"
 else
     echo -e "❌ ${C_RED}Error: Ollama no está instalado.${C_NC}"
     echo "Por favor, instálalo desde: https://ollama.com/download"
@@ -59,16 +59,20 @@ echo
 echo -e "${C_GREEN}¡Genial! Todos los prerrequisitos están cumplidos.${C_NC}"
 echo
 
-# --- 2. Iniciar el Entorno de Docker ---
-echo -e "${C_YELLOW}--- Paso 2: Configurando e iniciando el entorno ---${C_NC}"
-echo "A continuación, se configurará tu entorno (si es la primera vez) y se iniciarán los servicios de Docker."
+# --- 2. Instrucciones Finales ---
+echo -e "${C_YELLOW}--- Paso 2: Iniciar la configuración y la aplicación ---${C_NC}"
+echo "El último paso es ejecutar el script que configurará tu entorno y lanzará Docker."
+echo
+echo "Por favor, ejecuta el siguiente comando en tu terminal:"
 echo
 
-# Dar permisos de ejecución al script de Docker y ejecutarlo
+# Dar permisos de ejecución al script de Docker y mostrar el comando
 if [ -f "run-docker.sh" ]; then
     chmod +x run-docker.sh
-    ./run-docker.sh
+    echo -e "  ${C_GREEN}./run-docker.sh${C_NC}"
 else
-    echo -e "${C_RED}Error: El script 'run-docker.sh' no se encontró. Abortando.${C_NC}"
+    echo -e "${C_RED}Error: El script 'run-docker.sh' no se encontró. Algo salió mal.${C_NC}"
     exit 1
 fi
+
+echo
