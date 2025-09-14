@@ -38,20 +38,34 @@ if [ ! -f ".env" ]; then
     exit 0
 fi
 
-# Si .env ya existe, procedemos a iniciar Docker.
+# --- Lanzamiento de Docker ---
 echo -e "${C_GREEN}--- Se encontró archivo .env, saltando configuración ---${C_NC}"
-echo -e "${C_YELLOW}--- Iniciando Docker Compose ---${C_NC}"
+echo -e "${C_YELLOW}--- Iniciando Docker ---${C_NC}"
 echo "Construyendo las imágenes y levantando los servicios..."
 
-# Comando para levantar Docker Compose
-docker compose up --build -d
+# Determinar qué comando de Docker Compose usar (moderno vs. legacy)
+if docker compose version >/dev/null 2>&1; then
+    # Usa la nueva sintaxis 'docker compose'
+    COMPOSE_CMD="docker compose"
+else
+    # Usa la sintaxis antigua 'docker-compose'
+    echo "Usando la versión legacy 'docker-compose'. Considera actualizar Docker."
+    COMPOSE_CMD="docker-compose"
+fi
 
+# Ejecutar Docker Compose
+$COMPOSE_CMD up --build -d
+
+# Comprobar el resultado
 if [ $? -eq 0 ]; then
+    echo
     echo -e "${C_GREEN}¡Éxito! La aplicación se está ejecutando en segundo plano.${C_NC}"
     echo "Puedes ver la interfaz web en: ${C_BLUE}http://localhost:8501${C_NC}"
-    echo "Para detener la aplicación, ejecuta: ${C_YELLOW}docker compose down${C_NC}"
+    echo "Para detener la aplicación, ejecuta: ${C_YELLOW}$COMPOSE_CMD down${C_NC}"
 else
+    echo
     echo -e "${C_RED}Error: Fallo al iniciar Docker Compose.${C_NC}"
+    echo "Asegúrate de que Docker y Docker Compose están instalados y funcionando correctamente."
     echo "Revisa los mensajes de error de arriba para más detalles."
     exit 1
 fi
