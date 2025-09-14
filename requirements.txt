@@ -1,10 +1,29 @@
-ollama
-streamlit
-google-api-python-client
-google-auth
-google-auth-oauthlib
-google-auth-httplib2
-pywhatkit
-plyer
-pyttsx3
-speech_recognition
+# Core dependencies
+ollama>=0.1.7
+mysql-connector-python>=8.0.33
+PyMySQL>=1.0.2
+
+# Communication
+smtplib-ssl>=1.0.0
+
+# Voice and Audio
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+gtts>=2.3.1
+pygame>=2.4.0
+
+# GUI and Notifications
+plyer>=2.1.0
+pywhatkit>=5.4
+
+# Utilities
+python-dotenv>=1.0.0
+uuid
+
+# Optional GUI dependencies
+streamlit>=1.28.0
+
+# Development and testing
+pytest>=7.0.0
+black>=23.0.0
+flake8>=6.0.0

@@ -1,0 +1,17 @@
+# Entorno virtual
+venv/
+__pycache__/
+
+# Base de datos local
+memoria.db
+
+# Configuraciones sensibles
+.env
+
+# Token de Google
+token.pickle
+
+# Archivos temporales
+*.pyc
+*.pyo
+*.log

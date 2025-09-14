@@ -1,9 +1,32 @@
+import os
+if os.environ.get('DISPLAY') is None:
+    print("Advertencia: No hay display gráfico disponible. Deshabilitando funcionalidades GUI (WhatsApp).")
+    PWK_AVAILABLE = False
+else:
+    PWK_AVAILABLE = True
+
+import logging
+from config import MODEL, DB_PATH, CREDENTIALS_PATH, EMAIL_SMTP, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, WHATSAPP_NUMBER, GOOGLE_SPEECH_LANGUAGE
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 import sqlite3
 import json
 import datetime
 import smtplib
 from email.mime.text import MIMEText
-import pywhatkit as pwk
+try:
+    if PWK_AVAILABLE:
+        import pywhatkit as pwk
+    else:
+        pwk = None
+except ImportError as e:
+    if 'DISPLAY' in str(e):
+        print("Advertencia: No hay display gráfico disponible (headless Linux?). WhatsApp deshabilitado.")
+    else:
+        print(f"Error importando pywhatkit: {e}")
+    pwk = None
 from plyer import notification
 import ollama
 import speech_recognition as sr
@@ -17,13 +40,7 @@ from google.auth.transport.requests import Request
 import os.path
 
 # Configuraciones (ajusta según tu setup)
-MODEL = 'llama3'
-DB_PATH = 'memoria.db'
-CREDENTIALS_PATH = 'credentials.json'  # Para Google Calendar
-EMAIL_SMTP = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USER = 'tu_email@gmail.com'  # Cambia por el tuyo
-EMAIL_PASS = 'tu_app_password'  # App password de Gmail
+# Configuraciones movidas a config.py
 
 class MemoryManager:
     def __init__(self, db_path):
@@ -99,22 +116,73 @@ class MemoryManager:
         conn.close()
 
 def configurar_voz():
-    engine = pyttsx3.init()
-    recognizer = sr.Recognizer()
-    return engine, recognizer
+    engine = None
+    recognizer = None
+    voice_mode = 'pyttsx3'  # Default
+
+    # Always try to set up recognizer
+    try:
+        import speech_recognition as sr
+        recognizer = sr.Recognizer()
+        logger.info("Reconocimiento de voz configurado.")
+    except ImportError as e:
+        logger.error(f"Error importando speech_recognition: {e}. Instala pyaudio.")
+        raise
+
+    # Try pyttsx3 first
+    try:
+        import pyttsx3
+        engine = pyttsx3.init()
+        logger.info("pyttsx3 configurado exitosamente.")
+        voice_mode = 'pyttsx3'
+    except Exception as e:
+        logger.warning(f"pyttsx3 falla: {e}. Intentando fallback gTTS.")
+        try:
+            from gtts import gTTS
+            import pygame
+            import tempfile
+            import os
+            pygame.mixer.init()
+            engine = {'type': 'gtts', 'gtts': gTTS, 'pygame': pygame, 'temp_dir': tempfile.gettempdir()}
+            voice_mode = 'gtts'
+            logger.info("gTTS configurado como fallback.")
+        except Exception as gtts_e:
+            logger.error(f"Fallback gTTS falla: {gtts_e}. Deshabilitando síntesis de voz.")
+            engine = None
+            voice_mode = None
+
+    logger.info(f"Voz configurada con modo: {voice_mode}.")
+    return engine, recognizer, voice_mode
 
 def escuchar_voz(recognizer):
-    with sr.Microphone() as source:
-        print("Escuchando...")
-        audio = recognizer.listen(source)
     try:
-        return recognizer.recognize_google(audio, language='es-ES')
-    except:
+        with sr.Microphone() as source:
+            print("Escuchando...")
+            audio = recognizer.listen(source)
+        return recognizer.recognize_google(audio, language=GOOGLE_SPEECH_LANGUAGE)
+    except Exception as e:
+        logger.error(f"Error en reconocimiento de voz: {e}")
         return None
 
-def hablar_voz(engine, texto):
-    engine.say(texto)
-    engine.runAndWait()
+def hablar_voz(engine, texto, voice_mode):
+    if voice_mode == 'pyttsx3':
+        engine.say(texto)
+        engine.runAndWait()
+    elif voice_mode == 'gtts':
+        try:
+            tts = engine['gtts'](text=texto, lang='es')
+            temp_file = os.path.join(engine['temp_dir'], 'temp_speech.mp3')
+            tts.save(temp_file)
+            engine['pygame'].mixer.music.load(temp_file)
+            engine['pygame'].mixer.music.play()
+            while engine['pygame'].mixer.music.get_busy():
+                engine['pygame'].time.wait(100)
+            os.remove(temp_file)
+            logger.info("Audio gTTS reproducido.")
+        except Exception as e:
+            logger.error(f"Error en gTTS playback: {e}")
+    else:
+        print(f"JDMMItAsistente: {texto}")  # Fallback to print if no voice
 
 def integrar_calendar(descripcion, fecha):
     # Placeholder para Google Calendar
@@ -154,23 +222,31 @@ def enviar_email(destinatario, asunto, cuerpo):
         server.login(EMAIL_USER, EMAIL_PASS)
         server.sendmail(EMAIL_USER, destinatario, msg.as_string())
         server.quit()
+        logger.info("Email enviado exitosamente.")
         return "Email enviado."
     except Exception as e:
+        logger.error(f"Error enviando email: {e}")
         return f"Error enviando email: {e}"
 
 def enviar_whatsapp(numero, mensaje):
+    numero = numero or WHATSAPP_NUMBER
+    if not PWK_AVAILABLE:
+        return "Funcionalidad WhatsApp no disponible (requiere GUI/display)."
     try:
         pwk.sendwhatmsg_instantly(numero, mensaje)
+        logger.info("Mensaje WhatsApp enviado.")
         return "Mensaje WhatsApp enviado."
     except Exception as e:
+        logger.error(f"Error en WhatsApp: {e}")
         return f"Error en WhatsApp: {e}. Asegúrate de que WhatsApp Web esté abierto."
 
 def notificacion_local(titulo, mensaje):
     notification.notify(title=titulo, message=mensaje, timeout=10)
 
 def chat_with_ollama(input_usuario, historial_reciente):
-    contexto = "\n".join([f"Usuario: {h[0]}\nAsistente: {h[1]}" for h in historial_reciente])
-    prompt = f"""Eres un asistente diario con memoria llamado Memorae. Ayuda con tareas, recordatorios, resúmenes y preguntas diarias.
+    try:
+        contexto = "\n".join([f"Usuario: {h[0]}\nAsistente: {h[1]}" for h in historial_reciente])
+        prompt = f"""Eres un asistente diario con memoria llamado JDMMItAsistente. Ayuda con tareas, recordatorios, resúmenes y preguntas diarias.
 Usa español natural. Contexto de memoria:
 {contexto}
 
@@ -181,9 +257,14 @@ Si es listar tareas, responde: {{"tipo": "listar"}}.
 Si es completar tarea, {{"tipo": "completar", "id": 1}}.
 Para resumen de notas, {{"tipo": "resumen", "notas": "texto"}}.
 Para respuesta simple, solo texto natural."""
-    
-    response = ollama.chat(model=MODEL, messages=[{'role': 'user', 'content': prompt}])
-    return response['message']['content']
+        
+        logger.info(f"Enviando prompt a Ollama para input: {input_usuario[:50]}...")
+        response = ollama.chat(model=MODEL, messages=[{'role': 'user', 'content': prompt}])
+        logger.info("Respuesta de Ollama recibida.")
+        return response['message']['content']
+    except Exception as e:
+        logger.error(f"Error en chat_with_ollama: {e}")
+        return "Lo siento, hay un error en el procesamiento. Intenta de nuevo."
 
 def procesar_respuesta(respuesta):
     try:
@@ -196,25 +277,38 @@ def procesar_respuesta(respuesta):
         return {'tipo': 'respuesta', 'contenido': respuesta}
 
 def main():
+    logger.info("Iniciando agente JDMMItAsistente.")
     memory = MemoryManager(DB_PATH)
-    use_voice = input("¿Usar modo voz? (s/n): ").lower() == 's'
+    try:
+        use_voice = input("¿Usar modo voz? (s/n): ").lower() == 's'
+    except EOFError:
+        print("Entorno no interactivo detectado. Usando modo texto por defecto.")
+        use_voice = False
     
     if use_voice:
-        engine, recognizer = configurar_voz()
-        print("Modo voz activado. Di 'salir' para terminar.")
+        try:
+            engine, recognizer, voice_mode = configurar_voz()
+            print("Modo voz activado. Di 'salir' para terminar.")
+        except Exception as e:
+            print(f"Error configurando voz: {e}. Cambiando a modo texto.")
+            use_voice = False
     
     while True:
-        if use_voice:
-            input_usuario = escuchar_voz(recognizer)
-            if input_usuario and 'salir' in input_usuario.lower():
-                break
-            if not input_usuario:
-                continue
-            print(f"Tú: {input_usuario}")
-        else:
-            input_usuario = input("Tú: ")
-            if input_usuario.lower() == 'salir':
-                break
+        try:
+            if use_voice:
+                input_usuario = escuchar_voz(recognizer)
+                if input_usuario and 'salir' in input_usuario.lower():
+                    break
+                if not input_usuario:
+                    continue
+                print(f"Tú: {input_usuario}")
+            else:
+                input_usuario = input("Tú: ")
+                if input_usuario.lower() == 'salir':
+                    break
+        except EOFError:
+            print("Fin de entrada detectado. Saliendo.")
+            break
         
         historial_reciente = memory.obtener_historial_reciente()
         respuesta_llm = chat_with_ollama(input_usuario, historial_reciente)
@@ -224,7 +318,7 @@ def main():
             memory.guardar_tarea(parsed['descripcion'], parsed.get('fecha'), parsed['prioridad'])
             accion = parsed.get('accion', 'notif')
             if accion == 'email':
-                enviar_email('destinatario@example.com', 'Recordatorio', parsed['descripcion'])  # Ajusta
+                enviar_email('destinatario@example.com', 'Recordatorio', parsed['descripcion'])  # Ajusta destinatario
             elif accion == 'calendar':
                 integrar_calendar(parsed['descripcion'], parsed['fecha'])
             elif accion == 'whatsapp':
@@ -245,8 +339,8 @@ def main():
             output = parsed['contenido']
         
         if use_voice:
-            hablar_voz(engine, output)
-        print(f"Memorae: {output}")
+            hablar_voz(engine, output, voice_mode)
+        print(f"JDMMItAsistente: {output}")
         
         memory.guardar_interaccion(input_usuario, output)
 
