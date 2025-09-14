@@ -1,29 +1,10 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-dist/
-
-# Project-specific
-*.db
-*.sqlite
-*.sqlite3
+# Archivos de entorno y secretos
 .env
-credentials.json
-token.pickle
+.streamlit/secrets.toml
 
-# IDE / Editor files
-.idea/
-.vscode/
-*.swp
+# Dependencias de Python
+__pycache__/
+*.pyc
 
-# OS-specific
+# Archivos de sistema
 .DS_Store
-Thumbs.db
