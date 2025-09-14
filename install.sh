@@ -10,8 +10,6 @@ C_RED='\033[0;31m'
 C_NC='\033[0m' # No Color
 
 # --- Funciones Auxiliares ---
-
-# Función para imprimir un encabezado
 print_header() {
     echo -e "${C_BLUE}==============================================${C_NC}"
     echo -e "${C_BLUE}    Asistente de Instalación de Memorae       ${C_NC}"
@@ -19,56 +17,66 @@ print_header() {
     echo
 }
 
-# Función para comprobar si un comando existe
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
 # --- Inicio del Script ---
-
 clear
 print_header
 
-echo "Este script te guiará a través de la instalación de Memorae."
-echo "Se comprobarán los prerrequisitos y se iniciará la aplicación con Docker."
-echo
-
 # --- 1. Verificación de Prerrequisitos ---
 echo -e "${C_YELLOW}--- Paso 1: Verificando prerrequisitos ---${C_NC}"
-
-# Comprobar Docker
-if command_exists docker; then
-    echo -e "✅ ${C_GREEN}Docker está instalado.${C_NC}"
-else
-    echo -e "❌ ${C_RED}Error: Docker no está instalado.${C_NC}"
-    echo "Por favor, instálalo desde: https://docs.docker.com/get-docker/"
-    exit 1
-fi
-
-# Comprobar Ollama
-if command_exists ollama; then
-    echo -e "✅ ${C_GREEN}Ollama está instalado.${C_NC}"
+if command_exists docker && command_exists ollama; then
+    echo -e "✅ ${C_GREEN}Docker y Ollama están instalados.${C_NC}"
     echo "      Asegúrate de haber descargado un modelo (ej: ollama pull llama3)"
 else
-    echo -e "❌ ${C_RED}Error: Ollama no está instalado.${C_NC}"
-    echo "Por favor, instálalo desde: https://ollama.com/download"
+    echo -e "❌ ${C_RED}Error: Docker u Ollama no están instalados.${C_NC}"
+    echo "Por favor, instálalos y vuelve a intentarlo."
     exit 1
 fi
-
-echo
-echo -e "${C_GREEN}¡Genial! Todos los prerrequisitos están cumplidos.${C_NC}"
 echo
 
-# --- 2. Iniciar el Entorno de Docker ---
-echo -e "${C_YELLOW}--- Paso 2: Configurando e iniciando el entorno ---${C_NC}"
-echo "A continuación, se configurará tu entorno (si es la primera vez) y se iniciarán los servicios de Docker."
-echo
-
-# Dar permisos de ejecución al script de Docker y ejecutarlo
-if [ -f "run-docker.sh" ]; then
-    chmod +x run-docker.sh
-    ./run-docker.sh
+# --- 2. Verificación del archivo .env ---
+echo -e "${C_YELLOW}--- Paso 2: Verificando configuración de entorno ---${C_NC}"
+if [ ! -f ".env" ]; then
+    echo "No se encontró el archivo .env. Creando una plantilla..."
+    bash utils/secure-env.sh
+    echo
+    echo -e "${C_YELLOW}---------------- ACCIÓN REQUERIDA ----------------${C_NC}"
+    echo "He creado un archivo de plantilla llamado '.env.example'."
+    echo
+    echo "Por favor, sigue estos 3 pasos:
+1. Renombra el archivo:   ${C_GREEN}mv .env.example .env${C_NC}
+2. Ábrelo y edita los valores con tus credenciales.
+3. Vuelve a ejecutar este instalador:   ${C_GREEN}bash install.sh${C_NC}"
+    echo -e "${C_YELLOW}----------------------------------------------------${C_NC}"
+    exit 0
 else
-    echo -e "${C_RED}Error: El script 'run-docker.sh' no se encontró. Abortando.${C_NC}"
-    exit 1
+    echo -e "✅ ${C_GREEN}¡Archivo .env encontrado!${C_NC}"
 fi
+echo
+
+# --- 3. Instrucciones Finales de Arranque ---
+echo -e "${C_YELLOW}--- Paso 3: ¡Listo para arrancar! ---${C_NC}"
+
+# Dar permisos de ejecución a los scripts de inicio
+chmod +x start-modern.sh
+chmod +x start-legacy.sh
+
+echo "Tu entorno está completamente configurado."
+echo "Ahora puedes iniciar la aplicación usando uno de los siguientes comandos:"
+echo
+
+echo -e "Opción 1: Para versiones ${C_GREEN}NUEVAS${C_NC} de Docker (intenta esta primero)"
+_cmd="bash start-modern.sh"
+echo "  $_cmd"
+echo
+
+echo -e "Opción 2: Si la opción 1 falla, para versiones ${C_YELLOW}ANTIGUAS${C_NC} de Docker"
+_cmd="bash start-legacy.sh"
+echo "  $_cmd"
+echo
+
+echo "La aplicación puede tardar un minuto en iniciarse la primera vez."
+echo -e "Una vez iniciada, accede a ella en ${C_BLUE}http://localhost:8501${C_NC}"
